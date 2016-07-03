@@ -3,6 +3,7 @@ import binascii
 import time
 import json
 import os
+import sys
 
 # 79414881 // русский шансон
 # 74230986 // чисто рэп
@@ -29,6 +30,7 @@ class ClubWiper():
 	def __init__(self):
 		print(banner, end='\n\n')
 		self.accs = self.load_accs()
+		print(self.accs)
 		self.socks = []
 		self.rooms = []
 		self.romm_data = []
@@ -41,10 +43,11 @@ class ClubWiper():
 		return ''.join( [x for x in text if x in r'qwertyuiop[]asdfghjkl;\'zxcvbnm,./`1234567890-=\\~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ'] )
 		
 	def load_accs(self):
-		arr = [ 
-		[ b'ID_аккаунта_1', b'возраст_на_аккаунте_1', b'auth_key_1' ],
-		[ b'ID_аккаунта_2' , b'возраст_на_аккаунте_2', b'auth_key_2' ],
-		]
+		arr = []
+		ac = open(sys.path[0] + '/data.accs', 'r').readlines()
+		for q in ac:
+			tmp = q.split(':', 2)
+			arr.append( [bytes(tmp[0], 'UTF-8'), bytes(tmp[1], 'UTF-8'), bytes(tmp[2].strip(), 'UTF-8')] )
 		return arr
 
 	def help(self):
@@ -62,16 +65,14 @@ class ClubWiper():
 		print(hlp)
 
 	def flush(self, sock):
-		for q in self.socks:
-			sock = q[1]
-			sock.settimeout(0)
-			while True:
-				try:
-					if not sock.recv(1024):
-						break
-				except Exception as e:
+		sock.settimeout(0)
+		while True:
+			try:
+				if not sock.recv(1024):
 					break
-			sock.settimeout(None)
+			except Exception as e:
+				break
+		sock.settimeout(None)
 		return 0
 
 	def dec(self, sock):
@@ -265,7 +266,6 @@ class ClubWiper():
 
 def setup_console(sys_enc="utf-8"):
 	import codecs
-	import sys
 	try:
 		if sys.platform.startswith("win"):
 			import ctypes
