@@ -30,7 +30,6 @@ class ClubWiper():
 	def __init__(self):
 		print(banner, end='\n\n')
 		self.accs = self.load_accs()
-		print(self.accs)
 		self.socks = []
 		self.rooms = []
 		self.romm_data = []
