@@ -1,9 +1,8 @@
 import socket
 import binascii
-import random
 import time
 import json
-import signal
+import os
 
 # 79414881 // русский шансон
 # 74230986 // чисто рэп
@@ -13,11 +12,17 @@ import signal
 
 #46.182.24.155:2222 - sock сервер
 
-banner = '''            _         _                        
- \  / |/   /  |  | | |_)   \    / o ._   _  ._ 
-  \/  |\   \_ |_ |_| |_)    \/\/  | |_) (/_ |  
-                                    |          
-by dzmuh                             for 2ch.hk'''
+banner = '''										
+ _   _ _   __  _   ___     _   _______   _    _ _                 
+| | | | | / / | | / | |   | | | | ___ \ | |  | (_)                
+| | | | |/ /  | |/ /| |   | | | | |_/ / | |  | |_ _ __   ___ _ __ 
+| | | |    \  |    \| |   | | | | ___ \ | |/\| | | '_ \ / _ | '__|
+\ \_/ | |\  \ | |\  | |___| |_| | |_/ / \  /\  | | |_) |  __| |   
+ \___/\_| \_/ \_| \_\_____/\___/\____/   \/  \/|_| .__/ \___|_|   
+                                                 | |              
+                                                 |_|             
+by dzmuh                                               for 2ch.hk
+Source: github.com/dzmuh97/VKClubWiper         '''
 
 class ClubWiper():
 
@@ -32,9 +37,12 @@ class ClubWiper():
 		print('"h" - вывод справки.', end='\n\n')
 		self.roll()
 
+	def normalprint(self, text):
+		return ''.join( [x for x in text if x in r'qwertyuiop[]asdfghjkl;\'zxcvbnm,./`1234567890-=\\~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ'] )
+		
 	def load_accs(self):
 		arr = [ 
-		[ b'ID_аккаунта_1', b'возраст_на_аккаунте', b'auth_key' ],
+		[ b'ID_аккаунта_1', b'возраст_на_аккаунте_1', b'auth_key_1' ],
 		[ b'ID_аккаунта_2' , b'возраст_на_аккаунте_2', b'auth_key_2' ],
 		]
 		return arr
@@ -56,13 +64,15 @@ class ClubWiper():
 	def flush(self, sock):
 		for q in self.socks:
 			sock = q[1]
+			sock.settimeout(0)
 			while True:
 				try:
-					with timeout(seconds=1):
-						if not sock.recv(1024):
-							break
+					if not sock.recv(1024):
+						break
 				except Exception as e:
 					break
+			sock.settimeout(None)
+		return 0
 
 	def dec(self, sock):
 		MSGLEN = sock.recv(2)
@@ -71,8 +81,7 @@ class ClubWiper():
 		bytes_recd = 0
 		while bytes_recd < MSGLEN:
 			try:
-				with timeout(seconds=2):
-					chunk = sock.recv(min(MSGLEN - bytes_recd, 1024))
+				chunk = sock.recv(min(MSGLEN - bytes_recd, 1024))
 			except Exception as e:
 				break
 			chunks.append(chunk)
@@ -88,7 +97,7 @@ class ClubWiper():
 		print('-----')
 		for q in self.romm_data:
 			i += 1
-			print('{:<3} {:<15} {:<15}'.format(i, q[0], q[1]))
+			print('{:<3} {:<15} {:<15}'.format(i, self.normalprint(q[0]), q[1]))
 		print('-----')
 		no = int(input('>> ')) - 1
 		uid = self.romm_data[no][1]
@@ -147,7 +156,7 @@ class ClubWiper():
 		print('-----')
 		for q in self.clubs:
 			i += 1
-			print('{:<3} {:<50} {:<15} {:<3}'.format(i, q[0], q[1], q[2]))
+			print('{:<3} {:<35} {:<15} {:<3}'.format(i, self.normalprint(q[0]), q[1], q[2]))
 		print('-----')
 		no = int(input('>> ')) - 1
 		club = self.clubs[no][1]
@@ -185,8 +194,8 @@ class ClubWiper():
 			sock.send(payload)
 			print(q[0], 'отправил запрос на авторизацию..')
 			data = self.dec(sock.dup())
-			user = json.loads(data)
-			if '"profile":' in data:
+			if data:
+				user = json.loads(data)
 				uid = user['profile']['id']
 				bonus = int(user['daily_bonus'])
 				name = user['profile']['name']
@@ -254,19 +263,27 @@ class ClubWiper():
 				self.egg()
 				continue
 
-class timeout:
-    def __init__(self, seconds=1, error_message='| recv -> timeout'):
-        self.seconds = seconds
-        self.error_message = error_message
-    def handle_timeout(self, signum, frame):
-        raise TimeoutError(self.error_message)
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.alarm(self.seconds)
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
+def setup_console(sys_enc="utf-8"):
+	import codecs
+	import sys
+	try:
+		if sys.platform.startswith("win"):
+			import ctypes
+			enc = "cp%d" % ctypes.windll.kernel32.GetOEMCP()
+		else:
+			enc = (sys.stdout.encoding if sys.stdout.isatty() else
+						sys.stderr.encoding if sys.stderr.isatty() else
+							sys.getfilesystemencoding() or sys_enc)
+		sys.setdefaultencoding(sys_enc)
+		if sys.stdout.isatty() and sys.stdout.encoding != enc:
+			sys.stdout = codecs.getwriter(enc)(sys.stdout, 'replace')
+		if sys.stderr.isatty() and sys.stderr.encoding != enc:
+			sys.stderr = codecs.getwriter(enc)(sys.stderr, 'replace')
+	except:
+		pass
 
 if __name__ == '__main__':
+	setup_console()
 	main = ClubWiper()
 	exit()
 
