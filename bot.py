@@ -149,7 +149,7 @@ class ClubWiper():
 		if not self.connected:
 			print('Аккаунты не подключены.')
 			return 0
-		if not self.connected:
+		if not self.clubs:
 			print('Клубы не загружены.')
 			return 0
 		i = 0
@@ -160,6 +160,7 @@ class ClubWiper():
 		print('-----')
 		no = int(input('>> ')) - 1
 		club = self.clubs[no][1]
+		self.romm_data = []
 		for chank in self.socks:
 			s = chank[1]
 			self.flush(s.dup())
@@ -207,6 +208,11 @@ class ClubWiper():
 				if not self.clubs:
 					data = self.dec(sock.dup())
 					clubs = json.loads(data)
+					if not 'clubs' in clubs:
+						payload = binascii.unhexlify('0015') + b'{"type":"list_clubs"}'
+						sock.send(payload) 
+						data = self.dec(sock.dup())
+						clubs = json.loads(data)
 					for q in clubs['clubs']:
 						self.clubs.append( [ q['title'], q['id'], q['population'] ] )
 				if bonus > 0:
