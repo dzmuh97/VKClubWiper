@@ -35,7 +35,7 @@ class ClubWiper():
 		self.romm_data = []
 		self.connected = False
 		self.clubs = []
-		print('"h" - вывод справки.', end='\n\n')
+		print('Включен ручной режим.\n"h" - вывод справки.', end='\n\n')
 		self.roll()
 
 	def normalprint(self, text):
@@ -99,7 +99,7 @@ class ClubWiper():
 			i += 1
 			print('{:<3} {:<15} {:<15}'.format(i, self.normalprint(q[0]), q[1]))
 		print('-----')
-		no = int(input('>> ')) - 1
+		no = int(input('Номер человека >> ')) - 1
 		uid = self.romm_data[no][1]
 		payload = b'{"type":"send_gift","receiver_id":"'+bytes(uid, 'UTF-8')+b'","gift":"snow"}'
 		ms = binascii.unhexlify(format(len(payload), '#06x')[2:]) + payload
@@ -143,7 +143,6 @@ class ClubWiper():
 		for chank in self.socks:
 			s = chank[1]
 			s.send(ms)
-			#print(s.recv(1024))
 
 	def goto(self):
 		if not self.connected:
@@ -158,7 +157,7 @@ class ClubWiper():
 			i += 1
 			print('{:<3} {:<35} {:<15} {:<3}'.format(i, self.normalprint(q[0]), q[1], q[2]))
 		print('-----')
-		no = int(input('>> ')) - 1
+		no = int(input('Номер клуба >> ')) - 1
 		club = self.clubs[no][1]
 		self.romm_data = []
 		for chank in self.socks:
@@ -218,7 +217,7 @@ class ClubWiper():
 				if bonus > 0:
 					payload = binascii.unhexlify('001c') + b'{"type":"claim_daily_bonus"}'
 					sock.send(payload)
-					self.flush(sock.sup())
+					self.flush(sock.dup())
 					print('| > Бонус собран.')
 				print('------------')
 				self.socks.append([uid, sock, name])
