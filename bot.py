@@ -1,10 +1,11 @@
-import socket
+import socks
 import binascii
 import time
 import json
 import os
 import sys
 
+# 115709063 // test
 # 79414881 // русский шансон
 # 74230986 // чисто рэп
 # 58534882 // целуй и знакомься
@@ -35,11 +36,20 @@ class ClubWiper():
 		self.romm_data = []
 		self.connected = False
 		self.clubs = []
+		self.proxylist = []
 		print('Включен ручной режим.\n"h" - вывод справки.', end='\n\n')
+		self.loadprx()
 		self.roll()
 
+	def loadprx(self):
+		file = open(sys.path[0] + '/proxyes.dat', 'r').readlines()
+		for q in file:
+			pr = q.split(':', 1)
+			self.proxylist.append( [ pr[0], int( pr[1].strip() ) ] )
+		print('Загружено', len(self.proxylist), 'прокси.\n')
+		
 	def normalprint(self, text):
-		return ''.join( [x for x in text if x in r'qwertyuiop[]asdfghjkl;\'zxcvbnm,./`1234567890-=\\~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ'] )
+		return ''.join( [x for x in text if x in r' qwertyuiop[]asdfghjkl;\'zxcvbnm,./`1234567890-=\\~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ'] )
 		
 	def load_accs(self):
 		arr = []
@@ -185,10 +195,23 @@ class ClubWiper():
 		if self.connected:
 			print('Аккаунты уже подключены.')
 			return 0
+		used_prx = []
 		for q in self.accs:
-			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			sock.connect(('46.182.24.155', 2222))
+			for prxy in self.proxylist: 
+				if len(used_prx) == len(self.proxylist):
+					print('Прокси кончились..')
+					return 0
+				if prxy in used_prx:
+					continue
+				sock = socks.socksocket()
+				sock.set_proxy(socks.SOCKS4, prxy[0], prxy[1])
+				print('Пробуем подключиться с', prxy[0], ':', prxy[1])
+				used_prx.append(prxy)
+				try:
+					sock.connect(('46.182.24.155', 2222))
+					break
+				except socks.GeneralProxyError:
+					print('Прокси не валидны..')
 			payload = b'{"id":"'+q[0]+b'","age":'+q[1]+b',"type":"login","referrer_type":"user_apps","club_id":"0","auth":"'+q[2]+b'","referrer_id":""}'
 			payload = binascii.unhexlify(format(len(payload), '#06x')[2:] ) + payload
 			sock.send(payload)
@@ -221,13 +244,12 @@ class ClubWiper():
 					print('| > Бонус собран.')
 				print('------------')
 				self.socks.append([uid, sock, name])
+				self.connected = True
 				continue
 			else:
 				print(q[0], 'не смог пройти авторизацию.\n', data)
 				sock.close()
 				break
-
-		self.connected = True
 		return 0
 
 	def ex(self):
