@@ -237,7 +237,11 @@ class ClubWiper():
 				continue
 			data = self.dec(s.dup())
 			if not self.romm_data:
-				h = json.loads(data)
+				try:
+					h = json.loads(data)
+				except:
+					print('Прокси отвалились. Требуется реконнект.')
+					continue
 				for q in h['clubbers']:
 					self.romm_data.append( [q['name'],  q['id']] )
 			if '"id": "'+str(club)+'"' in data:
