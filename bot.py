@@ -37,6 +37,7 @@ class ClubWiper():
 		self.connected = False
 		self.clubs = []
 		self.proxylist = []
+		self.currentroom = ''
 		print('Включен ручной режим.\n"h" - вывод справки.', end='\n\n')
 		self.loadprx()
 		self.roll()
@@ -45,7 +46,10 @@ class ClubWiper():
 		file = open(sys.path[0] + '/proxyes.dat', 'r').readlines()
 		for q in file:
 			pr = q.split(':', 1)
-			self.proxylist.append( [ pr[0], int( pr[1].strip() ) ] )
+			try:
+				self.proxylist.append( [ pr[0], int( pr[1].strip() ) ] )
+			except:
+				print('Не удалось добавить прокси, array =', q)
 		print('Загружено', len(self.proxylist), 'прокси.\n')
 		
 	def normalprint(self, text):
@@ -56,13 +60,17 @@ class ClubWiper():
 		ac = open(sys.path[0] + '/data.accs', 'r').readlines()
 		for q in ac:
 			tmp = q.split(':', 2)
-			arr.append( [bytes(tmp[0], 'UTF-8'), bytes(tmp[1], 'UTF-8'), bytes(tmp[2].strip(), 'UTF-8')] )
+			try:
+				arr.append( [bytes(tmp[0], 'UTF-8'), bytes(tmp[1], 'UTF-8'), bytes(tmp[2].strip(), 'UTF-8')] )
+			except:
+				print('Не удалось добавить аккаунт, array =', tmp)
 		return arr
 
 	def help(self):
 		hlp = '''
 		h - вывод справки.
 		c - подключение всех аккаунтов
+		r - переподключить аккаунты и вернуться в руму
 		g - перекатиться в клуб
 		m MES - отправить MES в чат
 		q - выход
@@ -154,21 +162,25 @@ class ClubWiper():
 			s = chank[1]
 			s.send(ms)
 
-	def goto(self):
+	def goto(self, curr=''):
 		if not self.connected:
 			print('Аккаунты не подключены.')
 			return 0
 		if not self.clubs:
 			print('Клубы не загружены.')
 			return 0
-		i = 0
-		print('-----')
-		for q in self.clubs:
-			i += 1
-			print('{:<3} {:<35} {:<15} {:<3}'.format(i, self.normalprint(q[0]), q[1], q[2]))
-		print('-----')
-		no = int(input('Номер клуба >> ')) - 1
-		club = self.clubs[no][1]
+		if not curr:
+			i = 0
+			print('-----')
+			for q in self.clubs:
+				i += 1
+				print('{:<3} {:<35} {:<15} {:<3}'.format(i, self.normalprint(q[0]), q[1], q[2]))
+			print('-----')
+			no = int(input('Номер клуба >> ')) - 1
+			club = self.clubs[no][1]
+			self.currentroom = club
+		else:
+			club = curr
 		self.romm_data = []
 		for chank in self.socks:
 			s = chank[1]
@@ -212,6 +224,8 @@ class ClubWiper():
 					break
 				except socks.GeneralProxyError:
 					print('Прокси не валидны..')
+				except socks.ProxyConnectionError:
+					print('Прокси не отвечают..')
 			payload = b'{"id":"'+q[0]+b'","age":'+q[1]+b',"type":"login","referrer_type":"user_apps","club_id":"0","auth":"'+q[2]+b'","referrer_id":""}'
 			payload = binascii.unhexlify(format(len(payload), '#06x')[2:] ) + payload
 			sock.send(payload)
@@ -255,8 +269,15 @@ class ClubWiper():
 	def ex(self):
 		for q in self.socks:
 			q[1].close()
-		exit()
 
+	def reconnect(self):
+		self.connected = False
+		self.ex()
+		self.socks = []
+		self.conn()
+		if self.currentroom:
+			self.goto(self.currentroom)
+		
 	def roll(self):
 		while True:
 			char = input('> ')
@@ -265,7 +286,7 @@ class ClubWiper():
 				continue
 			elif char == 'q':
 				self.ex()
-				continue
+				exit()
 			elif char == 'c':
 				self.conn()
 				print('Подключено:', len(self.socks))
@@ -288,6 +309,9 @@ class ClubWiper():
 				continue
 			elif char == 'e':
 				self.egg()
+				continue
+			elif char == 'r':
+				self.reconnect()
 				continue
 
 def setup_console(sys_enc="utf-8"):
