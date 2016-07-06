@@ -14,7 +14,11 @@ import sys
 
 #46.182.24.155:2222 - sock сервер
 
-banner = '''										
+# {"song":{"url":"http://cs1-34v4.vk-cdn.net/p3/47a9a1d3c280c9.mp3?extra=0H9zrFKyJz4lJBBMvRyP1y5T-CprpEm3XNQ4-Zz-KBWGbnjpsgT52U-dCJGsRz1by1-hlEOGwuwPRdYtjNQm3GE1su2bqWm41vJjZYOXub6SsM7fYtq3uDbm8ij_2duseB6DGdvxwg","genre":18,"title":"All About Us (Album Version)","duration":185,"id":"48452916_456239047","author":""},"type":"enqueue"}
+
+TIMEOUT = 5
+
+BANNER = '''										
  _   _ _   __  _   ___     _   _______   _    _ _                 
 | | | | | / / | | / | |   | | | | ___ \ | |  | (_)                
 | | | | |/ /  | |/ /| |   | | | | |_/ / | |  | |_ _ __   ___ _ __ 
@@ -24,37 +28,41 @@ banner = '''
                                                  | |              
                                                  |_|             
 by dzmuh                                               for 2ch.hk
-Source: github.com/dzmuh97/VKClubWiper         '''
+Source: github.com/dzmuh97/VKClubWiper                           '''
 
 class ClubWiper():
 
 	def __init__(self):
-		print(banner, end='\n\n')
+		print(BANNER, end='\n\n')
 		self.accs = self.load_accs()
 		self.socks = []
 		self.rooms = []
 		self.romm_data = []
 		self.connected = False
 		self.clubs = []
-		self.proxylist = []
+		self.used_prx = []
+		self.proxylist = self.loadprx()
 		self.currentroom = ''
 		print('Включен ручной режим.\n"h" - вывод справки.', end='\n\n')
-		self.loadprx()
 		self.roll()
 
 	def loadprx(self):
+		arr = []
 		file = open(sys.path[0] + '/proxyes.dat', 'r').readlines()
 		for q in file:
 			pr = q.split(':', 1)
 			try:
-				self.proxylist.append( [ pr[0], int( pr[1].strip() ) ] )
+				arr.append( [ pr[0], int( pr[1].strip() ) ] )
 			except:
 				print('Не удалось добавить прокси, array =', q)
-		print('Загружено', len(self.proxylist), 'прокси.\n')
-		
+		print('Загружено', len(arr), 'прокси.\n')
+		if len(arr) <= len(self.accs):
+			print('Кажется, аккаунтов меньше, чем прокси.\nЭто может привести к тому, что не все аккаунты будут подключены. (каждому аккаунту требуется свой прокси)\nНесмотря на это, работа будет продолжена.\n')
+		return arr
+
 	def normalprint(self, text):
 		return ''.join( [x for x in text if x in r' qwertyuiop[]asdfghjkl;\'zxcvbnm,./`1234567890-=\\~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ'] )
-		
+
 	def load_accs(self):
 		arr = []
 		ac = open(sys.path[0] + '/data.accs', 'r').readlines()
@@ -64,6 +72,7 @@ class ClubWiper():
 				arr.append( [bytes(tmp[0], 'UTF-8'), bytes(tmp[1], 'UTF-8'), bytes(tmp[2].strip(), 'UTF-8')] )
 			except:
 				print('Не удалось добавить аккаунт, array =', tmp)
+		print('Загружено', len(arr), 'аккаунтов.')
 		return arr
 
 	def help(self):
@@ -89,12 +98,17 @@ class ClubWiper():
 					break
 			except Exception as e:
 				break
-		sock.settimeout(None)
+		sock.settimeout(TIMEOUT)
 		return 0
 
 	def dec(self, sock):
-		MSGLEN = sock.recv(2)
-		MSGLEN= int(binascii.hexlify(MSGLEN), 16)
+		try:
+			MSGLEN = sock.recv(2)
+		except:
+			return ''
+		if not MSGLEN:
+			return ''
+		MSGLEN = int(binascii.hexlify(MSGLEN), 16)
 		chunks = []
 		bytes_recd = 0
 		while bytes_recd < MSGLEN:
@@ -123,7 +137,12 @@ class ClubWiper():
 		ms = binascii.unhexlify(format(len(payload), '#06x')[2:]) + payload
 		for chunk in self.socks:
 			s = chunk[1]
-			s.send(ms)
+			try:
+				s.send(ms)
+				print(chunk[2], 'отправил снежок.')
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 
 	def lik(self):
 		if not self.connected:
@@ -132,7 +151,12 @@ class ClubWiper():
 		l = binascii.unhexlify('001d') + b'{"vote":"like","type":"vote"}'
 		for chunk in self.socks:
 			s = chunk[1]
-			s.send(l)
+			try:
+				s.send(l)
+				print(chunk[2], 'отправил лойс.')
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 
 	def suplik(self):
 		if not self.connected:
@@ -141,7 +165,12 @@ class ClubWiper():
 		l = binascii.unhexlify('0022') + b'{"vote":"superlike","type":"vote"}'
 		for chunk in self.socks:
 			s = chunk[1]
-			s.send(l)
+			try:
+				s.send(l)
+				print(chunk[2], 'отправил рога.')
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 
 	def dis(self):
 		if not self.connected:
@@ -150,7 +179,12 @@ class ClubWiper():
 		d = binascii.unhexlify('0020') + b'{"vote":"dislike","type":"vote"}'
 		for chunk in self.socks:
 			s = chunk[1]
-			s.send(d)
+			try:
+				s.send(d)
+				print(chunk[2], 'отправил дизлайк.')
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 
 	def msg(self, msg):
 		if not self.connected:
@@ -160,7 +194,12 @@ class ClubWiper():
 		ms = binascii.unhexlify(format(len(payload), '#06x')[2:]) + payload
 		for chank in self.socks:
 			s = chank[1]
-			s.send(ms)
+			try:
+				s.send(ms)
+				print(chank[2], 'отправил сообщение.')
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 
 	def goto(self, curr=''):
 		if not self.connected:
@@ -176,8 +215,12 @@ class ClubWiper():
 				i += 1
 				print('{:<3} {:<35} {:<15} {:<3}'.format(i, self.normalprint(q[0]), q[1], q[2]))
 			print('-----')
-			no = int(input('Номер клуба >> ')) - 1
-			club = self.clubs[no][1]
+			no = int(input('Номер клуба или ID (0 - выход) >> '))
+			if no == 0: return 0
+			if no > 102:
+				club = no
+			else:
+				club = self.clubs[no - 1][1]
 			self.currentroom = club
 		else:
 			club = curr
@@ -187,7 +230,11 @@ class ClubWiper():
 			self.flush(s.dup())
 			payload = b'{"type":"goto","club_id":"'+bytes(club, 'UTF-8')+b'"}'
 			to_club = binascii.unhexlify(format(len(payload), '#06x')[2:]) + payload
-			s.send(to_club)
+			try:
+				s.send(to_club)
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 			data = self.dec(s.dup())
 			if not self.romm_data:
 				h = json.loads(data)
@@ -207,32 +254,41 @@ class ClubWiper():
 		if self.connected:
 			print('Аккаунты уже подключены.')
 			return 0
-		used_prx = []
 		for q in self.accs:
 			for prxy in self.proxylist: 
-				if len(used_prx) == len(self.proxylist):
-					print('Прокси кончились..')
+				if len(self.used_prx) == len(self.proxylist):
+					print('Прокси кончились..\nПовторите коннект.')
+					self.used_prx = []
 					return 0
-				if prxy in used_prx:
+				if prxy in self.used_prx:
 					continue
 				sock = socks.socksocket()
 				sock.set_proxy(socks.SOCKS4, prxy[0], prxy[1])
+				sock.settimeout(TIMEOUT)
 				print('Пробуем подключиться с', prxy[0], ':', prxy[1])
-				used_prx.append(prxy)
+				self.used_prx.append(prxy)
 				try:
 					sock.connect(('46.182.24.155', 2222))
 					break
 				except socks.GeneralProxyError:
 					print('Прокси не валидны..')
 				except socks.ProxyConnectionError:
-					print('Прокси не отвечают..')
+					print('Прокси не ответили..')
 			payload = b'{"id":"'+q[0]+b'","age":'+q[1]+b',"type":"login","referrer_type":"user_apps","club_id":"0","auth":"'+q[2]+b'","referrer_id":""}'
 			payload = binascii.unhexlify(format(len(payload), '#06x')[2:] ) + payload
-			sock.send(payload)
+			try:
+				sock.send(payload)
+			except:
+				print('Прокси отвалились. Требуется реконнект.')
+				continue
 			print(q[0], 'отправил запрос на авторизацию..')
 			data = self.dec(sock.dup())
 			if data:
-				user = json.loads(data)
+				try:
+					user = json.loads(data)
+				except:
+					print('Не удалось раскодировать ответ. Возможно, требуется реконнект.')
+					continue
 				uid = user['profile']['id']
 				bonus = int(user['daily_bonus'])
 				name = user['profile']['name']
@@ -243,17 +299,29 @@ class ClubWiper():
 				print('| Ежедневнй бонус:', bonus)
 				if not self.clubs:
 					data = self.dec(sock.dup())
-					clubs = json.loads(data)
+					try:
+						clubs = json.loads(data)
+					except:
+						print('Не удалось раскодировать ответ. Возможно, требуется реконнект.')
+						continue
 					if not 'clubs' in clubs:
 						payload = binascii.unhexlify('0015') + b'{"type":"list_clubs"}'
 						sock.send(payload) 
 						data = self.dec(sock.dup())
-						clubs = json.loads(data)
+						try:
+							clubs = json.loads(data)
+						except:
+							print('Не удалось раскодировать ответ. Возможно, требуется реконнект.')
+							continue
 					for q in clubs['clubs']:
 						self.clubs.append( [ q['title'], q['id'], q['population'] ] )
 				if bonus > 0:
 					payload = binascii.unhexlify('001c') + b'{"type":"claim_daily_bonus"}'
-					sock.send(payload)
+					try:
+						sock.send(payload)
+					except:
+						print('Прокси отвалились. Требуется реконнект.')
+						continue
 					self.flush(sock.dup())
 					print('| > Бонус собран.')
 				print('------------')
@@ -263,7 +331,7 @@ class ClubWiper():
 			else:
 				print(q[0], 'не смог пройти авторизацию.\n', data)
 				sock.close()
-				break
+				continue
 		return 0
 
 	def ex(self):
@@ -277,7 +345,8 @@ class ClubWiper():
 		self.conn()
 		if self.currentroom:
 			self.goto(self.currentroom)
-		
+		print('Переподключено:', len(self.socks))
+
 	def roll(self):
 		while True:
 			char = input('> ')
