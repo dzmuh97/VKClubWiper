@@ -293,6 +293,9 @@ class ClubWiper():
 				except:
 					print('Не удалось раскодировать ответ. Возможно, требуется реконнект.')
 					continue
+				if not 'profile' in user:
+					print('Не удалось авторизироваться. Скорее всего юзер забанен.')
+					continue
 				uid = user['profile']['id']
 				bonus = int(user['daily_bonus'])
 				name = user['profile']['name']
